@@ -14,6 +14,9 @@ class NodeType(Enum):
     SERVICE_ACCOUNT = "service_account"
     GROUP = "group"
     DOMAIN = "domain"
+    PROJECT_VIEWER = "project_viewer"
+    PROJECT_OWNER = "project_owner"
+    PROJECT_EDITOR = "project_editor"
 
 class EdgeType(Enum):
     # Enum of edge types for type safety and consistency
@@ -253,6 +256,10 @@ def create_test_graph():
     cloudasset_sa = Node(NodeType.SERVICE_ACCOUNT, "service-377145543109@gcp-sa-cloudasset.iam.gserviceaccount.com")
     reviewers_group = Node(NodeType.GROUP, "reviewers@test.authomize.com")
     domain_node = Node(NodeType.DOMAIN, "test.authomize.com")
+    project_editor = Node(NodeType.PROJECT_EDITOR, "intrepid-fiber-264210")
+    project_owner = Node(NodeType.PROJECT_OWNER, "intrepid-fiber-264210")
+    project_viewer = Node(NodeType.PROJECT_VIEWER, "intrepid-fiber-264210")
+
     
     # Add all nodes
     all_nodes = [
@@ -262,13 +269,13 @@ def create_test_graph():
         folder_495694787245, project_185023072868, project_20671306372,
         project_377145543109, storage_bucket, billing_account,
         ron_user, dev_manager_sa, devops_dude_sa, exercise_fetcher_sa,
-        cloudasset_sa, reviewers_group, domain_node
+        cloudasset_sa, reviewers_group, domain_node, project_viewer , project_owner, project_editor
     ]
     
     for node in all_nodes:
         graph.add_node(node)
     
-    # Create CORRECT hierarchy edges based on ancestors in JSON
+    # Create hierarchy edges based on ancestors in JSON
     hierarchy_edges = [
         # Direct children of organization
         Edge(org_node, folder_767216091627, EdgeType.PARENT_CHILD),
@@ -300,7 +307,7 @@ def create_test_graph():
     for edge in hierarchy_edges:
         graph.add_edge(edge)
     
-    # Create permission edges based on actual JSON bindings
+    # Create permission edges based on JSON bindings
     permission_edges = [
         # Organization permissions
         Edge(exercise_fetcher_sa, org_node, EdgeType.PERMISSION, {'role': 'roles/browser'}),
@@ -314,16 +321,37 @@ def create_test_graph():
         Edge(domain_node, org_node, EdgeType.PERMISSION, {'role': 'roles/billing.creator'}),
         Edge(domain_node, org_node, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.projectCreator'}),
         
-        # Folder permissions (sample - you'd add all from JSON)
+        # Folder permissions
         Edge(dev_manager_sa, folder_188906894377, EdgeType.PERMISSION, {'role': 'roles/owner'}),
         Edge(devops_dude_sa, folder_188906894377, EdgeType.PERMISSION, {'role': 'roles/owner'}),
+        Edge(dev_manager_sa, folder_767216091627, EdgeType.PERMISSION, {'role': 'roles/viewer'}),
         Edge(ron_user, folder_188906894377, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderAdmin'}),
-        
-        # Add other permissions from JSON...
         Edge(reviewers_group, folder_96505015065, EdgeType.PERMISSION, {'role': 'roles/viewer'}),
+        Edge(ron_user, folder_93198982071, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderAdmin'}),
+        Edge(ron_user, folder_93198982071, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderEditor'}),
+        Edge(ron_user, folder_361332156337, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderAdmin'}),
+        Edge(ron_user, folder_361332156337, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderEditor'}),
+        Edge(ron_user, folder_837642324986, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderAdmin'}),
+        Edge(ron_user, folder_837642324986, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderEditor'}),
+        Edge(ron_user, folder_495694787245, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderAdmin'}),
+        Edge(ron_user, folder_495694787245, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderEditor'}),
+        Edge(ron_user, folder_36290848176, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderAdmin'}),
+        Edge(ron_user, folder_36290848176, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderEditor'}),
+        Edge(ron_user, folder_96505015065, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderAdmin'}),
+        Edge(ron_user, folder_96505015065, EdgeType.PERMISSION, {'role': 'roles/resourcemanager.folderEditor'}),
         
         # Billing account
         Edge(ron_user, billing_account, EdgeType.PERMISSION, {'role': 'roles/billing.admin'}),
+
+        # Storage Bucket 
+        Edge(project_editor, storage_bucket, EdgeType.PERMISSION, {'role': 'roles/storage.legacyBucketOwner'}),
+        Edge(project_owner, storage_bucket, EdgeType.PERMISSION, {'role': 'roles/storage.legacyBucketOwner'}),
+        Edge(project_viewer, storage_bucket, EdgeType.PERMISSION, {'role': 'roles/storage.legacyBucketReader'}),
+
+        # Projects
+        Edge(ron_user, project_20671306372, EdgeType.PERMISSION, {'role': 'roles/owner'}),
+        Edge(ron_user, project_377145543109, EdgeType.PERMISSION, {'role': 'roles/owner'}),
+        Edge(cloudasset_sa, project_377145543109, EdgeType.PERMISSION, {'role': 'roles/cloudasset.serviceAgent'}),
     ]
     
     for edge in permission_edges:
