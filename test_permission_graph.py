@@ -220,3 +220,46 @@ def test_duplicate_node_addition(graph):
     graph.add_node(Node(NodeType.USER, "duplicate@user.com"))
     graph.add_node(Node(NodeType.USER, "duplicate@user.com"))
     assert len(graph.nodes) == initial_count + 1
+
+def test_direct_permissions_on_resource(graph):
+    """Test identities with direct permissions on a folder"""
+    folder_id = "188906894377"  # this has direct permissions
+    results = graph.get_identities_with_permissions_on_resource(NodeType.FOLDER, folder_id)
+
+    expected = {
+        ("dev-manager@striking-arbor-264209.iam.gserviceaccount.com", "roles/owner"),
+        ("devops-dude-1@striking-arbor-264209.iam.gserviceaccount.com", "roles/owner"),
+        ("ron@test.authomize.com", "roles/resourcemanager.folderAdmin"),
+    }
+
+    for identity, role in expected:
+        assert (identity, role) in results
+
+
+def test_inherited_permissions_from_parent_folder(graph):
+    """Test inherited permissions from parent folders"""
+    folder_id = "518729943705"  # under 635... under 767...
+    results = graph.get_identities_with_permissions_on_resource(NodeType.FOLDER, folder_id)
+
+    # ron@test has permissions on ancestor folders
+    assert ("ron@test.authomize.com", "roles/resourcemanager.folderAdmin") in results
+    assert ("ron@test.authomize.com", "roles/resourcemanager.folderEditor") in results
+
+
+def test_inherited_permissions_from_organization(graph):
+    """Test inherited permissions from the organization level"""
+    project_id = "185023072868"  # directly under organization
+    results = graph.get_identities_with_permissions_on_resource(NodeType.PROJECT, project_id)
+
+    assert ("exercise-fetcher@striking-arbor-264209.iam.gserviceaccount.com", "roles/owner") in results
+    assert ("ron@test.authomize.com", "roles/owner") in results
+
+
+def test_no_permissions_on_unassigned_resource(graph):
+    """Test empty permissions on a resource with no bindings"""
+    bucket_id = "authomize-exercise-data"
+    results = graph.get_identities_with_permissions_on_resource(NodeType.BUCKET, bucket_id)
+
+    # The bucket only has legacyBucket* permissions from project roles
+    assert len(results) > 0  # inherited roles should be included
+    assert any("roles/storage.legacyBucketOwner" in r for _, r in results)
